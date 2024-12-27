@@ -2,20 +2,23 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { createTheme } from '@mui/material/styles';
 import Layout from './components/layout/Layout';
-import Dashboard from './components/pages/Dashboard';
-import Books from './components/pages/Books';
-import Users from './components/pages/Users';
-import Transactions from './components/pages/Transactions';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
+import { AuthProvider } from './contexts/AuthContext';
+
+// Admin Components
 import AdminDashboard from './components/admin/AdminDashboard';
 import AdminBooks from './components/admin/AdminBooks';
 import AdminUsers from './components/admin/AdminUsers';
+import AdminLoans from './components/admin/AdminLoans';
+import AdminReports from './components/admin/AdminReports';
+
+// User Components
 import UserDashboard from './components/user/UserDashboard';
+import Books from './components/pages/Books';
 import MyBooks from './components/user/MyBooks';
 import History from './components/user/History';
-import { AuthProvider } from './contexts/AuthContext';
 
 const theme = createTheme({
   palette: {
@@ -43,49 +46,53 @@ function App() {
             {/* Public Routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            
+
             {/* Admin Routes */}
-            <Route path="/admin/*" element={
-              <ProtectedRoute requireAdmin>
-                <Layout>
-                  <Routes>
-                    <Route path="dashboard" element={<AdminDashboard />} />
-                    <Route path="books" element={<AdminBooks />} />
-                    <Route path="users" element={<AdminUsers />} />
-                    <Route path="*" element={<Navigate to="dashboard" replace />} />
-                  </Routes>
-                </Layout>
-              </ProtectedRoute>
-            } />
+            <Route
+              path="/admin/*"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <Layout>
+                    <Routes>
+                      <Route path="dashboard" element={<AdminDashboard />} />
+                      <Route path="books" element={<AdminBooks />} />
+                      <Route path="users" element={<AdminUsers />} />
+                      <Route path="loans" element={<AdminLoans />} />
+                      <Route path="reports" element={<AdminReports />} />
+                      <Route path="*" element={<Navigate to="dashboard" replace />} />
+                    </Routes>
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
 
             {/* User Routes */}
-            <Route path="/*" element={
-              <ProtectedRoute>
-                <Layout>
-                  <Routes>
-                    <Route path="dashboard" element={<UserDashboard />} />
-                    <Route path="books" element={<Books />} />
-                    <Route path="my-books" element={<MyBooks />} />
-                    <Route path="*" element={<Navigate to="dashboard" replace />} />
-                  </Routes>
-                </Layout>
-              </ProtectedRoute>
-            } />
-
-            {/* Redirect root to appropriate dashboard */}
-            <Route path="/" element={
-              <Navigate to={localStorage.getItem('userRole') === 'admin' ? '/admin/dashboard' : '/dashboard'} replace />
-            } />
-
-            <Route 
-              path="/history" 
+            <Route
+              path="/*"
               element={
                 <ProtectedRoute>
                   <Layout>
-                    <History />
+                    <Routes>
+                      <Route path="dashboard" element={<UserDashboard />} />
+                      <Route path="books" element={<Books />} />
+                      <Route path="my-books" element={<MyBooks />} />
+                      <Route path="history" element={<History />} />
+                      <Route path="*" element={<Navigate to="dashboard" replace />} />
+                    </Routes>
                   </Layout>
                 </ProtectedRoute>
-              } 
+              }
+            />
+
+            {/* Root redirect */}
+            <Route
+              path="/"
+              element={
+                <Navigate
+                  to={localStorage.getItem('userRole') === 'admin' ? '/admin/dashboard' : '/dashboard'}
+                  replace
+                />
+              }
             />
           </Routes>
         </Router>

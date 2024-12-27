@@ -89,61 +89,70 @@ router.put('/return/:id', async (req, res) => {
 // POST /api/transactions/borrow/:bookId - Borrow a book
 router.post('/borrow/:bookId', protect, async (req, res) => {
   try {
-    // Find the book
+    console.log('Borrow request for bookId:', req.params.bookId);
+    console.log('User:', req.user._id);
+
     const book = await Book.findById(req.params.bookId);
+    
     if (!book) {
+      console.log('Book not found');
       return res.status(404).json({ message: 'Book not found' });
     }
 
-    // Check availability
-    if (book.availableQuantity === 0) {
-      return res.status(400).json({ message: 'Book is not available for borrowing' });
+    console.log('Book found:', book);
+    console.log('Available quantity:', book.availableQuantity);
+
+    if (book.availableQuantity <= 0) {
+      console.log('Book not available');
+      return res.status(400).json({ message: 'Book is not available' });
     }
 
-    // Check if user already has this book
-    const existingTransaction = await Transaction.findOne({
+    // Check if user already has this book borrowed
+    const existingLoan = await Transaction.findOne({
       user: req.user._id,
       book: book._id,
       status: 'borrowed'
     });
 
-    if (existingTransaction) {
-      return res.status(400).json({ message: 'You already have this book borrowed' });
+    if (existingLoan) {
+      console.log('User already has this book');
+      return res.status(400).json({ 
+        message: 'You already have this book borrowed'
+      });
     }
 
-    // Calculate due date (14 days from now)
-    const dueDate = new Date();
-    dueDate.setDate(dueDate.getDate() + 14);
-
-    // Create new transaction
-    const transaction = await Transaction.create({
+    // Create transaction
+    const transaction = new Transaction({
       user: req.user._id,
       book: book._id,
-      dueDate: dueDate,
-      status: 'borrowed'
+      status: 'borrowed',
+      borrowDate: new Date(),
+      dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) // 14 days from now
     });
 
     // Update book availability
     book.availableQuantity -= 1;
-    book.borrowers.push({
-      user: req.user._id,
-      dueDate: dueDate
-    });
-    await book.save();
 
-    // Return the transaction with populated fields
-    await transaction.populate('book', 'title author');
+    await Promise.all([
+      transaction.save(),
+      book.save()
+    ]);
+
+    console.log('Transaction created:', transaction);
+
+    // Return populated transaction
+    await transaction.populate('book');
     await transaction.populate('user', 'name');
 
     res.status(201).json({
       message: 'Book borrowed successfully',
-      transaction: transaction
+      transaction
     });
 
   } catch (error) {
-    console.error('Borrow error:', error);
+    console.error('Error borrowing book:', error);
     res.status(500).json({ 
-      message: 'Failed to borrow book',
+      message: 'Error borrowing book',
       error: error.message 
     });
   }

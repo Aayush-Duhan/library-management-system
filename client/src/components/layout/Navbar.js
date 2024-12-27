@@ -13,10 +13,31 @@ const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const isAdmin = user?.role === 'admin';
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
+  };
+
+  const getNavLinks = () => {
+    if (isAdmin) {
+      return (
+        <>
+          <Link to="/admin/dashboard" className="nav-link">Dashboard</Link>
+          <Link to="/admin/books" className="nav-link">Books</Link>
+          <Link to="/admin/users" className="nav-link">Users</Link>
+        </>
+      );
+    }
+    return (
+      <>
+        <Link to="/dashboard" className="nav-link">Dashboard</Link>
+        <Link to="/books" className="nav-link">Books</Link>
+        <Link to="/my-books" className="nav-link">My Books</Link>
+        <Link to="/history" className="nav-link">History</Link>
+      </>
+    );
   };
 
   return (
@@ -25,7 +46,10 @@ const Navbar = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo and main nav */}
           <div className="flex items-center">
-            <Link to="/" className="flex items-center gap-2">
+            <Link 
+              to={isAdmin ? '/admin/dashboard' : '/dashboard'} 
+              className="flex items-center gap-2"
+            >
               <MenuBook className="text-accent-primary text-2xl" />
               <span className="font-bold text-lg">Library System</span>
             </Link>
@@ -33,10 +57,7 @@ const Navbar = () => {
             {/* Desktop Navigation */}
             {user && (
               <div className="hidden md:flex ml-10 space-x-4">
-                <Link to="/dashboard" className="nav-link">Dashboard</Link>
-                <Link to="/books" className="nav-link">Books</Link>
-                <Link to="/my-books" className="nav-link">My Books</Link>
-                <Link to="/history" className="nav-link">History</Link>
+                {getNavLinks()}
               </div>
             )}
           </div>
@@ -77,10 +98,7 @@ const Navbar = () => {
         {/* Mobile menu */}
         {isMenuOpen && user && (
           <div className="md:hidden py-2 space-y-1">
-            <Link to="/dashboard" className="mobile-nav-link">Dashboard</Link>
-            <Link to="/books" className="mobile-nav-link">Books</Link>
-            <Link to="/my-books" className="mobile-nav-link">My Books</Link>
-            <Link to="/history" className="mobile-nav-link">History</Link>
+            {getNavLinks()}
             <button
               onClick={handleLogout}
               className="w-full text-left mobile-nav-link text-accent-danger"

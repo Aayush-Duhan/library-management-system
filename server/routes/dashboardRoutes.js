@@ -1,57 +1,81 @@
 const express = require('express');
 const router = express.Router();
 const { protect, admin } = require('../middleware/authMiddleware');
+const Transaction = require('../models/Transaction');
 const Book = require('../models/Book');
 const User = require('../models/User');
-const Transaction = require('../models/Transaction');
 
-// GET /api/admin/dashboard
+// Admin Dashboard Route
 router.get('/admin/dashboard', protect, admin, async (req, res) => {
   try {
-    const stats = {
-      totalBooks: await Book.countDocuments(),
-      activeUsers: await User.countDocuments({ active: true }),
-      activeLoans: await Transaction.countDocuments({ status: 'borrowed' }),
-      overdueBooks: await Transaction.countDocuments({
-        status: 'borrowed',
-        dueDate: { $lt: new Date() }
-      })
-    };
+    // Get dashboard stats
+    const totalBooks = await Book.countDocuments();
+    const activeUsers = await User.countDocuments({ active: true });
+    const activeLoans = await Transaction.countDocuments({ status: 'borrowed' });
+    const overdueBooks = await Transaction.countDocuments({
+      status: 'borrowed',
+      dueDate: { $lt: new Date() }
+    });
 
-    res.json({ stats });
+    // Get recent activities
+    const recentActivities = await Transaction.find()
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate('user', 'name')
+      .populate('book', 'title');
+
+    res.json({
+      stats: {
+        totalBooks,
+        activeUsers,
+        activeLoans,
+        overdueBooks
+      },
+      activities: recentActivities.map(activity => ({
+        id: activity._id,
+        type: activity.status,
+        user: activity.user.name,
+        book: activity.book.title,
+        date: activity.createdAt
+      }))
+    });
   } catch (error) {
-    console.error('Error fetching admin dashboard:', error);
-    res.status(500).json({ message: 'Error fetching dashboard data' });
+    console.error('Admin dashboard error:', error);
+    res.status(500).json({ message: 'Error fetching admin dashboard data' });
   }
 });
 
-// GET /api/users/dashboard
+// User Dashboard Route
 router.get('/users/dashboard', protect, async (req, res) => {
   try {
     const borrowedBooks = await Transaction.find({
       user: req.user._id,
       status: 'borrowed'
-    }).populate('book', 'title author isbn');
+    }).populate('book');
 
-    // Always return a valid response structure
+    const recentActivity = await Transaction.find({
+      user: req.user._id
+    })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate('book');
+
     res.json({
-      borrowedBooks: borrowedBooks ? borrowedBooks.map(transaction => ({
-        _id: transaction.book._id,
-        title: transaction.book.title,
-        author: transaction.book.author,
-        isbn: transaction.book.isbn,
-        dueDate: transaction.dueDate,
-        isOverdue: new Date() > new Date(transaction.dueDate)
-      })) : [],
-      recentlyViewed: [] // Add this if you implement recently viewed functionality
+      stats: {
+        currentlyBorrowed: borrowedBooks.length,
+        totalBorrowed: await Transaction.countDocuments({ user: req.user._id }),
+        overdueBooks: await Transaction.countDocuments({
+          user: req.user._id,
+          status: 'borrowed',
+          dueDate: { $lt: new Date() }
+        })
+      },
+      borrowedBooks,
+      recentActivity
     });
   } catch (error) {
-    console.error('Error fetching user dashboard:', error);
-    res.status(500).json({
-      message: 'Error fetching dashboard data',
-      borrowedBooks: [],
-      recentlyViewed: []
-    });
+    console.error('User dashboard error:', error);
+    res.status(500).json({ message: 'Error fetching user dashboard data' });
   }
 });
 

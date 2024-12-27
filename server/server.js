@@ -17,6 +17,7 @@ app.use('/api/transactions', require('./routes/transactionRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/recommendations', require('./routes/recommendationRoutes'));
 app.use('/api', require('./routes/dashboardRoutes'));
+app.use('/api/reports', require('./routes/reportRoutes'));
 
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
@@ -36,4 +37,10 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+});
+
+// Add this after loading dotenv
+console.log('Environment check:', {
+  ADMIN_CODE: process.env.ADMIN_CODE,
+  NODE_ENV: process.env.NODE_ENV
 });

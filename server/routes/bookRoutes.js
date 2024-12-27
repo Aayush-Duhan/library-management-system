@@ -2,61 +2,17 @@ const express = require('express');
 const router = express.Router();
 const Book = require('../models/Book');
 const mongoose = require('mongoose');
-const { protect } = require('../middleware/authMiddleware');
+const { protect, admin } = require('../middleware/authMiddleware');
 const Review = require('../models/Review');
 
 // Get all books
 router.get('/', async (req, res) => {
   try {
-    const { category, availability, sortBy, search } = req.query;
-    
-    let query = {};
-    
-    // Category filter
-    if (category && category !== 'all') {
-      query.category = category;
-    }
-
-    // Availability filter
-    if (availability === 'available') {
-      query.availableQuantity = { $gt: 0 };
-    } else if (availability === 'borrowed') {
-      query.availableQuantity = { $lt: mongoose.Types.ObjectId(req.query.totalQuantity) };
-    }
-
-    // Search
-    if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { author: { $regex: search, $options: 'i' } },
-        { isbn: { $regex: search, $options: 'i' } }
-      ];
-    }
-
-    // Sorting
-    let sort = {};
-    switch (sortBy) {
-      case 'title':
-        sort.title = 1;
-        break;
-      case 'author':
-        sort.author = 1;
-        break;
-      case 'recent':
-        sort.createdAt = -1;
-        break;
-      default:
-        sort.title = 1;
-    }
-
-    const books = await Book.find(query)
-      .sort(sort)
-      .populate('reviews')
-      .select('-__v');
-
+    const books = await Book.find();
     res.json(books);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Error fetching books:', error);
+    res.status(500).json({ message: 'Error fetching books' });
   }
 });
 

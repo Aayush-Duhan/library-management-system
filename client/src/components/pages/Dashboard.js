@@ -97,13 +97,16 @@ const Dashboard = () => {
   const [error, setError] = useState('');
   const [data, setData] = useState({
     stats: {
-      currentlyBorrowed: 0,
-      totalBorrowed: 0,
+      totalBooks: 0,
+      activeUsers: 0,
+      activeLoans: 0,
       overdueBooks: 0
     },
+    activities: [],
     borrowedBooks: [],
     recentActivity: []
   });
+  
   const userRole = localStorage.getItem('userRole');
   const userName = localStorage.getItem('userName');
   const isAdmin = userRole === 'admin';
@@ -117,11 +120,7 @@ const Dashboard = () => {
       setLoading(true);
       const endpoint = isAdmin ? '/admin/dashboard' : '/users/dashboard';
       const response = await api.get(endpoint);
-      setData({
-        stats: response.data.stats || {},
-        borrowedBooks: response.data.borrowedBooks || [],
-        recentActivity: response.data.recentActivity || []
-      });
+      setData(response.data);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       setError('Failed to load dashboard data');
@@ -142,6 +141,7 @@ const Dashboard = () => {
     );
   }
 
+  // Render admin dashboard
   if (isAdmin) {
     return (
       <div className="space-y-6">
@@ -214,10 +214,30 @@ const Dashboard = () => {
             </p>
           </button>
         </div>
+
+        {/* Recent Activities */}
+        <div className="card p-6">
+          <h2 className="text-lg font-semibold mb-4">Recent Activities</h2>
+          <div className="space-y-4">
+            {data.activities && data.activities.map((activity, index) => (
+              <div key={index} className="flex items-center gap-4 p-4 bg-background-tertiary rounded-lg">
+                <div className="flex-1">
+                  <p className="font-medium">
+                    {activity.user} {activity.type} "{activity.book}"
+                  </p>
+                  <p className="text-sm text-text-secondary">
+                    {new Date(activity.date).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
 
+  // Render user dashboard
   return (
     <div className="space-y-6">
       <div>

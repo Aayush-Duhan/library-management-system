@@ -33,14 +33,29 @@ const StatCard = ({ title, value, icon: Icon, trend, color, secondaryValue }) =>
   </div>
 );
 
+const ActivityIcon = ({ type }) => {
+  switch (type) {
+    case 'borrowed':
+      return <SwapHoriz className="text-accent-primary" />;
+    case 'returned':
+      return <MenuBook className="text-accent-success" />;
+    default:
+      return <SwapHoriz className="text-accent-primary" />;
+  }
+};
+
 const RecentActivity = ({ activity }) => (
   <div className="flex items-center gap-4 p-4 hover:bg-background-tertiary rounded-lg transition-colors">
     <div className="w-10 h-10 rounded-lg bg-accent-primary/10 flex items-center justify-center">
-      <activity.icon className="text-accent-primary" />
+      <ActivityIcon type={activity.type} />
     </div>
     <div>
-      <p className="font-medium">{activity.title}</p>
-      <p className="text-sm text-text-secondary">{activity.time}</p>
+      <p className="font-medium">
+        {activity.user} {activity.type} "{activity.book}"
+      </p>
+      <p className="text-sm text-text-secondary">
+        {new Date(activity.date).toLocaleDateString()}
+      </p>
     </div>
   </div>
 );
@@ -54,20 +69,38 @@ const AdminDashboard = () => {
     overdueBooks: 0,
   });
   const [activities, setActivities] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
+        setLoading(true);
         const response = await api.get('/admin/dashboard');
         setStats(response.data.stats);
-        setActivities(response.data.activities);
+        setActivities(response.data.activities || []);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
+        setError('Failed to load dashboard data');
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchDashboardData();
   }, []);
+
+  if (loading) {
+    return <div className="text-center py-8">Loading dashboard...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="bg-accent-danger/10 text-accent-danger p-4 rounded-lg">
+        {error}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -109,9 +142,8 @@ const AdminDashboard = () => {
         />
       </div>
 
-      {/* Main Content */}
+      {/* Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Quick Actions */}
         <div className="lg:col-span-2">
           <div className="card p-6">
             <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
@@ -167,6 +199,9 @@ const AdminDashboard = () => {
             {activities.map((activity, index) => (
               <RecentActivity key={index} activity={activity} />
             ))}
+            {activities.length === 0 && (
+              <p className="text-text-secondary text-sm">No recent activity</p>
+            )}
           </div>
         </div>
       </div>
